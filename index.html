@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hear every sound · Hangul for Little Hands</title>
+<meta name="description" content="Tap any letter or word from the Hangul for Little Hands workbook to hear how it sounds.">
+<meta name="theme-color" content="#FEF9EF">
+<style>
+@font-face{
+  font-family:'Gaegu';
+  src:url('fonts/gaegu-bold.woff2') format('woff2');
+  font-weight:700; font-display:swap;
+}
+:root{
+  --cream:#FEF9EF; --card:#FFFFFF; --ink:#212430; --grey:#6B6F7A; --faint:#A9AEB8;
+  --coral:#FA8273; --sun:#FFCC4D; --mint:#8CD4AE; --blue:#5999E0; --grape:#8F70C7;
+  --line:#EDE6D8;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --bar:96px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--cream); color:var(--ink); font-family:var(--sans);
+  padding-bottom:calc(var(--bar) + env(safe-area-inset-bottom));
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+
+/* ---------- header ---------- */
+header{padding:28px 0 14px}
+.eyebrow{
+  font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--coral);
+  text-transform:uppercase;margin:0 0 8px
+}
+h1{font-size:26px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--grey);font-size:14.5px;line-height:1.5}
+
+/* ---------- tabs ---------- */
+.tabs{
+  display:flex;gap:6px;background:#F3EADA;border-radius:14px;padding:5px;
+  margin:20px 0 6px;position:sticky;top:8px;z-index:5;
+  box-shadow:0 2px 10px rgba(33,36,48,.06)
+}
+.tab{
+  flex:1;border:0;background:transparent;font:inherit;font-weight:700;font-size:14.5px;
+  color:var(--grey);padding:13px 8px;min-height:44px;border-radius:10px;cursor:pointer
+}
+.tab[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(33,36,48,.10)}
+.tab:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+.grouplabel{
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin:22px 0 10px
+}
+
+/* ---------- letter grid ---------- */
+.grid{display:grid;gap:10px}
+.grid.letters{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+.grid.words{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+
+.tile{
+  position:relative;background:var(--card);border:0;border-radius:16px;
+  padding:12px 8px 10px;font:inherit;text-align:center;cursor:pointer;
+  border-bottom:4px solid var(--tint);
+  box-shadow:0 1px 3px rgba(33,36,48,.07);
+  transition:transform .12s ease, box-shadow .12s ease;
+  display:flex;flex-direction:column;align-items:center;gap:2px
+}
+.tile:active{transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,0)}
+.tile:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.tile.on{box-shadow:0 0 0 3px var(--tint)}
+.glyph{font-family:'Gaegu',var(--sans);font-size:46px;line-height:1;margin:2px 0 4px}
+.sound{font-size:15px;font-weight:700;color:var(--tint);line-height:1}
+.hint{font-size:11px;color:var(--faint);line-height:1.3;min-height:0}
+.namechip{
+  margin-top:7px;border:0;background:#F5F1E6;border-radius:999px;
+  padding:0 12px;min-height:40px;font:inherit;font-size:12px;color:var(--grey);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;line-height:1
+}
+.namechip b{font-family:'Gaegu',var(--sans);font-size:15px;color:var(--ink);font-weight:700}
+.namechip:active{background:#EBE4D2}
+.namechip:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* ---------- word tiles ---------- */
+.wtile{flex-direction:row;align-items:center;gap:10px;text-align:left;padding:10px 12px}
+.wtile img{width:52px;height:52px;object-fit:contain;flex:none}
+.wtext{min-width:0}
+.wko{font-family:'Gaegu',var(--sans);font-size:26px;line-height:1.1;display:block}
+.wrom{font-size:12px;color:var(--grey);line-height:1.4}
+.wen{font-size:12px;color:var(--faint);font-style:italic;line-height:1.3}
+
+/* ---------- now playing ---------- */
+.bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:10;
+  background:rgba(254,249,239,.94);backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+}
+.barin{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:14px;min-height:70px}
+.bigglyph{
+  font-family:'Gaegu',var(--sans);font-size:44px;line-height:1;
+  width:64px;height:64px;flex:none;border-radius:16px;background:var(--card);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 3px rgba(33,36,48,.08);color:var(--faint)
+}
+.bigglyph.live{color:var(--ink)}
+.bigglyph.pulse{animation:pop .28s ease}
+@keyframes pop{0%{transform:scale(.9)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
+.barmeta{min-width:0;flex:1}
+.barmeta .t{font-size:15px;font-weight:700;line-height:1.3}
+.barmeta .s{font-size:12.5px;color:var(--grey);line-height:1.4}
+.replay{
+  border:0;background:var(--ink);color:#fff;border-radius:999px;
+  padding:0 18px;min-height:44px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;flex:none
+}
+.replay[disabled]{background:#DCD6C8;color:#fff;cursor:default}
+.replay:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+footer{padding:26px 0 8px;color:var(--faint);font-size:12px;line-height:1.6}
+footer b{color:var(--grey)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Hangul for Little Hands · Level 1</p>
+    <h1>Hear every sound</h1>
+    <p class="lede">Tap a letter to hear its sound. Tap the small grey chip to hear its name. Read by a kindergarten teacher.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="What to listen to">
+    <button class="tab" role="tab" id="tab-l" aria-controls="panel-l" aria-selected="true">Letters</button>
+    <button class="tab" role="tab" id="tab-w" aria-controls="panel-w" aria-selected="false">Words</button>
+  </div>
+
+  <section id="panel-l" role="tabpanel" aria-labelledby="tab-l">
+    <p class="grouplabel">Vowels · 10</p>
+    <div class="grid letters" id="g-vowel"></div>
+    <p class="grouplabel">Consonants · 14</p>
+    <div class="grid letters" id="g-cons"></div>
+  </section>
+
+  <section id="panel-w" role="tabpanel" aria-labelledby="tab-w" hidden>
+    <p class="grouplabel">Picture words · 49</p>
+    <div class="grid words" id="g-words"></div>
+  </section>
+
+  <footer>
+    <b>About these recordings.</b> Every sound here is spoken slowly, the way a child first hears it.
+    Words are read twice. Letter names are on the grey chips, but say the sound first — children read from
+    sounds, not names.
+  </footer>
+</div>
+
+<div class="bar">
+  <div class="barin">
+    <div class="bigglyph" id="np-glyph" aria-hidden="true">·</div>
+    <div class="barmeta">
+      <div class="t" id="np-title">Nothing playing yet</div>
+      <div class="s" id="np-sub">Tap any letter above to start.</div>
+    </div>
+    <button class="replay" id="np-replay" disabled>Play again</button>
+  </div>
+  <div aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)" id="live"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  var TINTS = ['var(--coral)','var(--sun)','var(--mint)','var(--blue)','var(--grape)'];
+  var audio = new Audio(); audio.preload = 'none';
+  var current = null, lastTile = null;
+
+  var npG = document.getElementById('np-glyph'),
+      npT = document.getElementById('np-title'),
+      npS = document.getElementById('np-sub'),
+      npR = document.getElementById('np-replay'),
+      live = document.getElementById('live');
+
+  function play(id, glyph, title, sub, tile){
+    current = id;
+    audio.src = 'audio/' + id + '.mp3';
+    audio.play().catch(function(){});
+    npG.textContent = glyph;
+    npG.classList.add('live');
+    npG.classList.remove('pulse'); void npG.offsetWidth; npG.classList.add('pulse');
+    npT.textContent = title;
+    npS.textContent = sub;
+    npR.disabled = false;
+    live.textContent = 'Playing ' + title;
+    if (lastTile) lastTile.classList.remove('on');
+    if (tile){ tile.classList.add('on'); lastTile = tile; }
+  }
+  npR.addEventListener('click', function(){
+    if (current){ audio.currentTime = 0; audio.play().catch(function(){}); }
+  });
+
+  function letterTile(L, i){
+    var el = document.createElement('button');
+    el.className = 'tile';
+    el.style.setProperty('--tint', TINTS[i % TINTS.length]);
+    el.setAttribute('aria-label', 'Play the sound of ' + L.glyph);
+
+    var g = document.createElement('span'); g.className = 'glyph'; g.textContent = L.glyph;
+    var s = document.createElement('span'); s.className = 'sound'; s.textContent = L.sound;
+    var h = document.createElement('span'); h.className = 'hint'; h.textContent = L.hint;
+    el.appendChild(g); el.appendChild(s); el.appendChild(h);
+
+    var chip = document.createElement('span');
+    chip.className = 'namechip';
+    chip.setAttribute('role','button');
+    chip.tabIndex = 0;
+    chip.setAttribute('aria-label','Play the name ' + L.nameRom);
+    chip.innerHTML = '<b></b><span></span>';
+    chip.querySelector('b').textContent = L.name;
+    chip.querySelector('span').textContent = L.nameRom;
+    function playName(e){
+      e.stopPropagation(); e.preventDefault();
+      play(L.nameId, L.glyph, L.name + ' · ' + L.nameRom, 'Letter name', el);
+    }
+    chip.addEventListener('click', playName);
+    chip.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ') playName(e);
+    });
+    el.appendChild(chip);
+
+    el.addEventListener('click', function(){
+      play(L.id, L.glyph, L.glyph + '  ' + L.sound, L.hint, el);
+    });
+    return el;
+  }
+
+  function wordTile(W, i){
+    var el = document.createElement('button');
+    el.className = 'tile wtile';
+    el.style.setProperty('--tint', TINTS[i % TINTS.length]);
+    el.setAttribute('aria-label', 'Play ' + W.rom + ', ' + W.en);
+
+    var img = document.createElement('img');
+    img.src = 'icons/' + W.id + '.webp'; img.alt = ''; img.loading = 'lazy';
+    var box = document.createElement('span'); box.className = 'wtext';
+    var ko = document.createElement('span'); ko.className = 'wko'; ko.textContent = W.ko;
+    var ro = document.createElement('span'); ro.className = 'wrom'; ro.textContent = W.rom;
+    var en = document.createElement('span'); en.className = 'wen'; en.textContent = W.en;
+    box.appendChild(ko); box.appendChild(document.createElement('br'));
+    box.appendChild(ro); box.appendChild(document.createElement('br')); box.appendChild(en);
+    el.appendChild(img); el.appendChild(box);
+
+    el.addEventListener('click', function(){
+      play(W.id, W.ko, W.ko + '  ' + W.rom, W.en + ' · read twice', el);
+    });
+    return el;
+  }
+
+  var D = window.DATA;
+  var gv = document.getElementById('g-vowel'), gc = document.getElementById('g-cons');
+  var vi = 0, ci = 0;
+  D.letters.forEach(function(L){
+    if (L.kind === 'vowel') gv.appendChild(letterTile(L, vi++));
+    else gc.appendChild(letterTile(L, ci++));
+  });
+  var gw = document.getElementById('g-words');
+  D.words.forEach(function(W, i){ gw.appendChild(wordTile(W, i)); });
+
+  var tabs = [document.getElementById('tab-l'), document.getElementById('tab-w')];
+  var panels = [document.getElementById('panel-l'), document.getElementById('panel-w')];
+  tabs.forEach(function(t, i){
+    t.addEventListener('click', function(){
+      tabs.forEach(function(x, j){
+        x.setAttribute('aria-selected', j === i ? 'true' : 'false');
+        panels[j].hidden = j !== i;
+      });
+      window.scrollTo({top: 0, behavior: 'auto'});
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -50,6 +50,17 @@ h1{font-size:26px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
 .tab[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(33,36,48,.10)}
 .tab:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 
+.levelbar{display:flex;gap:8px;margin:18px 0 0}
+.lvl{
+  flex:1;border:0;background:var(--card);font:inherit;font-weight:700;font-size:14px;
+  color:var(--grey);padding:0 10px;min-height:46px;border-radius:14px;cursor:pointer;
+  box-shadow:0 1px 3px rgba(33,36,48,.07);border-bottom:4px solid transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px
+}
+.lvl small{font-weight:400;font-size:11px;color:var(--faint);line-height:1}
+.lvl[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--coral)}
+.lvl:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.combo{font-size:11px;color:var(--faint);line-height:1.2;margin-top:1px}
 .grouplabel{
   font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--faint);margin:22px 0 10px
@@ -132,8 +143,13 @@ footer b{color:var(--grey)}
   <header>
     <p class="eyebrow">Hangul for Little Hands · Level 1</p>
     <h1>Hear every sound</h1>
-    <p class="lede">Tap a letter to hear its sound. Tap the small grey chip to hear its name. Read by a kindergarten teacher.</p>
+    <p class="lede">Pick your book, then tap a letter to hear its sound. Read by a kindergarten teacher.</p>
   </header>
+
+  <div class="levelbar" role="group" aria-label="Which book">
+    <button class="lvl" id="lv-l1" aria-pressed="true">Level 1<small>Basic letters</small></button>
+    <button class="lvl" id="lv-l2" aria-pressed="false">Level 2<small>Two letters joined</small></button>
+  </div>
 
   <div class="tabs" role="tablist" aria-label="What to listen to">
     <button class="tab" role="tab" id="tab-l" aria-controls="panel-l" aria-selected="true">Letters</button>
@@ -141,14 +157,14 @@ footer b{color:var(--grey)}
   </div>
 
   <section id="panel-l" role="tabpanel" aria-labelledby="tab-l">
-    <p class="grouplabel">Vowels · 10</p>
+    <p class="grouplabel" id="lab-v"></p>
     <div class="grid letters" id="g-vowel"></div>
-    <p class="grouplabel">Consonants · 14</p>
+    <p class="grouplabel" id="lab-c"></p>
     <div class="grid letters" id="g-cons"></div>
   </section>
 
   <section id="panel-w" role="tabpanel" aria-labelledby="tab-w" hidden>
-    <p class="grouplabel">Picture words · 49</p>
+    <p class="grouplabel" id="lab-w"></p>
     <div class="grid words" id="g-words"></div>
   </section>
 
@@ -176,25 +192,20 @@ footer b{color:var(--grey)}
 (function(){
   var TINTS = ['var(--coral)','var(--sun)','var(--mint)','var(--blue)','var(--grape)'];
   var audio = new Audio(); audio.preload = 'none';
-  var current = null, lastTile = null;
+  var current = null, lastTile = null, LV = null;
 
-  var npG = document.getElementById('np-glyph'),
-      npT = document.getElementById('np-title'),
-      npS = document.getElementById('np-sub'),
-      npR = document.getElementById('np-replay'),
-      live = document.getElementById('live');
+  var npG=document.getElementById('np-glyph'), npT=document.getElementById('np-title'),
+      npS=document.getElementById('np-sub'), npR=document.getElementById('np-replay'),
+      live=document.getElementById('live');
 
   function play(id, glyph, title, sub, tile){
-    current = id;
-    audio.src = 'audio/' + id + '.mp3';
+    current = LV.dir + id;
+    audio.src = 'audio/' + current + '.mp3';
     audio.play().catch(function(){});
-    npG.textContent = glyph;
-    npG.classList.add('live');
+    npG.textContent = glyph; npG.classList.add('live');
     npG.classList.remove('pulse'); void npG.offsetWidth; npG.classList.add('pulse');
-    npT.textContent = title;
-    npS.textContent = sub;
-    npR.disabled = false;
-    live.textContent = 'Playing ' + title;
+    npT.textContent = title; npS.textContent = sub;
+    npR.disabled = false; live.textContent = 'Playing ' + title;
     if (lastTile) lastTile.classList.remove('on');
     if (tile){ tile.classList.add('on'); lastTile = tile; }
   }
@@ -203,81 +214,93 @@ footer b{color:var(--grey)}
   });
 
   function letterTile(L, i){
-    var el = document.createElement('button');
-    el.className = 'tile';
-    el.style.setProperty('--tint', TINTS[i % TINTS.length]);
-    el.setAttribute('aria-label', 'Play the sound of ' + L.glyph);
-
-    var g = document.createElement('span'); g.className = 'glyph'; g.textContent = L.glyph;
-    var s = document.createElement('span'); s.className = 'sound'; s.textContent = L.sound;
-    var h = document.createElement('span'); h.className = 'hint'; h.textContent = L.hint;
+    var el=document.createElement('button');
+    el.className='tile'; el.style.setProperty('--tint', TINTS[i % TINTS.length]);
+    el.setAttribute('aria-label','Play the sound of ' + L.glyph);
+    var g=document.createElement('span'); g.className='glyph'; g.textContent=L.glyph;
+    var s=document.createElement('span'); s.className='sound'; s.textContent=L.sound;
+    var h=document.createElement('span'); h.className='hint'; h.textContent=L.hint;
     el.appendChild(g); el.appendChild(s); el.appendChild(h);
-
-    var chip = document.createElement('span');
-    chip.className = 'namechip';
-    chip.setAttribute('role','button');
-    chip.tabIndex = 0;
-    chip.setAttribute('aria-label','Play the name ' + L.nameRom);
-    chip.innerHTML = '<b></b><span></span>';
-    chip.querySelector('b').textContent = L.name;
-    chip.querySelector('span').textContent = L.nameRom;
-    function playName(e){
-      e.stopPropagation(); e.preventDefault();
-      play(L.nameId, L.glyph, L.name + ' · ' + L.nameRom, 'Letter name', el);
+    if (L.combo){
+      var cb=document.createElement('span'); cb.className='combo'; cb.textContent=L.combo;
+      el.appendChild(cb);
     }
-    chip.addEventListener('click', playName);
-    chip.addEventListener('keydown', function(e){
-      if (e.key === 'Enter' || e.key === ' ') playName(e);
-    });
-    el.appendChild(chip);
-
+    if (L.nameId !== L.id){
+      var chip=document.createElement('span');
+      chip.className='namechip'; chip.setAttribute('role','button'); chip.tabIndex=0;
+      chip.setAttribute('aria-label','Play the name ' + L.nameRom);
+      chip.innerHTML='<b></b><span></span>';
+      chip.querySelector('b').textContent=L.name;
+      chip.querySelector('span').textContent=L.nameRom;
+      function pn(e){ e.stopPropagation(); e.preventDefault();
+        play(L.nameId, L.glyph, L.name + ' · ' + L.nameRom, 'Letter name', el); }
+      chip.addEventListener('click', pn);
+      chip.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') pn(e); });
+      el.appendChild(chip);
+    }
     el.addEventListener('click', function(){
-      play(L.id, L.glyph, L.glyph + '  ' + L.sound, L.hint, el);
-    });
+      play(L.id, L.glyph, L.glyph + '  ' + L.sound, L.hint, el); });
     return el;
   }
 
   function wordTile(W, i){
-    var el = document.createElement('button');
-    el.className = 'tile wtile';
-    el.style.setProperty('--tint', TINTS[i % TINTS.length]);
-    el.setAttribute('aria-label', 'Play ' + W.rom + ', ' + W.en);
-
-    var img = document.createElement('img');
-    img.src = 'icons/' + W.id + '.webp'; img.alt = ''; img.loading = 'lazy';
-    var box = document.createElement('span'); box.className = 'wtext';
-    var ko = document.createElement('span'); ko.className = 'wko'; ko.textContent = W.ko;
-    var ro = document.createElement('span'); ro.className = 'wrom'; ro.textContent = W.rom;
-    var en = document.createElement('span'); en.className = 'wen'; en.textContent = W.en;
+    var el=document.createElement('button');
+    el.className='tile wtile'; el.style.setProperty('--tint', TINTS[i % TINTS.length]);
+    el.setAttribute('aria-label','Play ' + W.rom + ', ' + W.en);
+    var img=document.createElement('img');
+    img.src='icons/' + LV.dir + W.id + '.webp'; img.alt=''; img.loading='lazy';
+    var box=document.createElement('span'); box.className='wtext';
+    var ko=document.createElement('span'); ko.className='wko'; ko.textContent=W.ko;
+    var ro=document.createElement('span'); ro.className='wrom'; ro.textContent=W.rom;
+    var en=document.createElement('span'); en.className='wen'; en.textContent=W.en;
     box.appendChild(ko); box.appendChild(document.createElement('br'));
     box.appendChild(ro); box.appendChild(document.createElement('br')); box.appendChild(en);
     el.appendChild(img); el.appendChild(box);
-
     el.addEventListener('click', function(){
-      play(W.id, W.ko, W.ko + '  ' + W.rom, W.en + ' · read twice', el);
-    });
+      play(W.id, W.ko, W.ko + '  ' + W.rom, W.en + ' · read twice', el); });
     return el;
   }
 
-  var D = window.DATA;
-  var gv = document.getElementById('g-vowel'), gc = document.getElementById('g-cons');
-  var vi = 0, ci = 0;
-  D.letters.forEach(function(L){
-    if (L.kind === 'vowel') gv.appendChild(letterTile(L, vi++));
-    else gc.appendChild(letterTile(L, ci++));
-  });
-  var gw = document.getElementById('g-words');
-  D.words.forEach(function(W, i){ gw.appendChild(wordTile(W, i)); });
+  var gv=document.getElementById('g-vowel'), gc=document.getElementById('g-cons'),
+      gw=document.getElementById('g-words');
 
-  var tabs = [document.getElementById('tab-l'), document.getElementById('tab-w')];
-  var panels = [document.getElementById('panel-l'), document.getElementById('panel-w')];
-  tabs.forEach(function(t, i){
+  function render(level){
+    LV = level; lastTile = null; current = null;
+    npG.textContent='·'; npG.classList.remove('live');
+    npT.textContent='Nothing playing yet'; npS.textContent='Tap any letter above to start.';
+    npR.disabled = true;
+    gv.innerHTML=''; gc.innerHTML=''; gw.innerHTML='';
+    var vi=0, ci=0;
+    LV.letters.forEach(function(L){
+      if (L.kind==='vowel') gv.appendChild(letterTile(L, vi++));
+      else gc.appendChild(letterTile(L, ci++));
+    });
+    LV.words.forEach(function(W,i){ gw.appendChild(wordTile(W,i)); });
+    document.getElementById('lab-v').textContent = LV.vowelLabel + ' · ' + vi;
+    document.getElementById('lab-c').textContent = LV.consLabel + ' · ' + ci;
+    document.getElementById('lab-w').textContent = 'Picture words · ' + LV.words.length;
+  }
+
+  var levels = window.DATA.levels;
+  var btns = [document.getElementById('lv-l1'), document.getElementById('lv-l2')];
+  btns.forEach(function(b, i){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x,j){ x.setAttribute('aria-pressed', j===i ? 'true':'false'); });
+      render(levels[i]);
+      window.scrollTo({top:0, behavior:'auto'});
+    });
+  });
+  render(levels[0]);
+
+  var tabs=[document.getElementById('tab-l'), document.getElementById('tab-w')];
+  var panels=[document.getElementById('panel-l'), document.getElementById('panel-w')];
+  tabs.forEach(function(t,i){
     t.addEventListener('click', function(){
-      tabs.forEach(function(x, j){
-        x.setAttribute('aria-selected', j === i ? 'true' : 'false');
-        panels[j].hidden = j !== i;
+      tabs.forEach(function(x,j){
+        x.setAttribute('aria-selected', j===i?'true':'false');
+        panels[j].hidden = j!==i;
       });
-      window.scrollTo({top: 0, behavior: 'auto'});
+      window.scrollTo({top:0, behavior:'auto'});
     });
   });
 })();
